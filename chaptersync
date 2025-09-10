@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# ChapterSync - Sync ready sessions from private to public repo
+echo "🔄 ChapterSync - Syncing ready sessions..."
+
+# Check if we're in a git repo
+if [ ! -d ".git" ]; then
+    echo "❌ Error: Not in a git repository"
+    exit 1
+fi
+
+# Check if public remote exists
+if ! git remote get-url public >/dev/null 2>&1; then
+    echo "❌ Error: 'public' remote not found"
+    echo "Add it with: git remote add public <public-repo-url>"
+    exit 1
+fi
+
+# Find all ready sessions
+ready_sessions=()
+for session_dir in session*/; do
+    if [ -f "$session_dir/.chapter" ]; then
+        status=$(grep "status:" "$session_dir/.chapter" | cut -d' ' -f2)
+        if [ "$status" = "ready" ]; then
+            chapter_num=$(grep "chapter:" "$session_dir/.chapter" | cut -d' ' -f2)
+            ready_sessions+=("$session_dir")
+            echo "✅ Found ready session: $session_dir (Chapter $chapter_num)"
+        fi
+    fi
+done
+
+if [ ${#ready_sessions[@]} -eq 0 ]; then
+    echo "ℹ️  No ready sessions found"
+    exit 0
+fi
+
+echo ""
+echo "🚀 Syncing ${#ready_sessions[@]} ready session(s) to public repo..."
+
+# Create a temporary branch for sync
+sync_branch="sync-$(date +%s)"
+git checkout -b "$sync_branch"
+
+# Remove all existing session folders from public sync
+git rm -rf session*/ 2>/dev/null || true
+
+# Copy ready sessions
+for session in "${ready_sessions[@]}"; do
+    echo "📁 Copying $session..."
+    git add "$session"
+done
+
+# Commit changes
+git commit -m "Sync ready sessions: $(echo ${ready_sessions[@]} | tr ' ' ',')"
+
+# Push to public repo
+echo "📤 Pushing to public repo..."
+git push public "$sync_branch:main" --force
+
+# Return to main branch and cleanup
+git checkout main
+git branch -D "$sync_branch"
+
+echo ""
+echo "✅ ChapterSync complete! Ready sessions synced to public repo."
+echo "📋 Synced sessions: ${ready_sessions[@]}"
