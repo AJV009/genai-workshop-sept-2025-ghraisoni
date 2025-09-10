@@ -1,7 +1,16 @@
 #!/bin/bash
 
-# ChapterSync - Sync ready sessions from private to public repo
-echo "🔄 ChapterSync - Syncing ready sessions..."
+# ChapterSync - Copy ready sessions from private repo to public repo
+echo "🔄 ChapterSync - Syncing ready sessions from private repo..."
+
+PRIVATE_REPO="../genai-workshop-sept-2025-ghraisoni-private"
+PUBLIC_REPO="."
+
+# Check if private repo exists
+if [ ! -d "$PRIVATE_REPO" ]; then
+    echo "❌ Error: Private repo not found at $PRIVATE_REPO"
+    exit 1
+fi
 
 # Check if we're in a git repo
 if [ ! -d ".git" ]; then
@@ -9,22 +18,20 @@ if [ ! -d ".git" ]; then
     exit 1
 fi
 
-# Check if public remote exists
-if ! git remote get-url public >/dev/null 2>&1; then
-    echo "❌ Error: 'public' remote not found"
-    echo "Add it with: git remote add public <public-repo-url>"
-    exit 1
-fi
+echo "📁 Private repo: $PRIVATE_REPO"
+echo "📁 Public repo: $PUBLIC_REPO"
+echo ""
 
-# Find all ready sessions
+# Find all ready sessions in private repo
 ready_sessions=()
-for session_dir in session*/; do
+for session_dir in "$PRIVATE_REPO"/session*/; do
     if [ -f "$session_dir/.chapter" ]; then
         status=$(grep "status:" "$session_dir/.chapter" | cut -d' ' -f2)
         if [ "$status" = "ready" ]; then
             chapter_num=$(grep "chapter:" "$session_dir/.chapter" | cut -d' ' -f2)
-            ready_sessions+=("$session_dir")
-            echo "✅ Found ready session: $session_dir (Chapter $chapter_num)"
+            session_name=$(basename "$session_dir")
+            ready_sessions+=("$session_name")
+            echo "✅ Found ready session: $session_name (Chapter $chapter_num)"
         fi
     fi
 done
@@ -37,29 +44,29 @@ fi
 echo ""
 echo "🚀 Syncing ${#ready_sessions[@]} ready session(s) to public repo..."
 
-# Create a temporary branch for sync
-sync_branch="sync-$(date +%s)"
-git checkout -b "$sync_branch"
+# Remove all existing session folders
+echo "🗑️  Removing existing session folders..."
+rm -rf session*/
 
-# Remove all existing session folders from public sync
-git rm -rf session*/ 2>/dev/null || true
-
-# Copy ready sessions
+# Copy ready sessions from private to public
 for session in "${ready_sessions[@]}"; do
     echo "📁 Copying $session..."
-    git add "$session"
+    cp -r "$PRIVATE_REPO/$session" "$PUBLIC_REPO/"
+    # Remove .chapter files from public repo (keep them private)
+    rm -f "$PUBLIC_REPO/$session/.chapter"
 done
 
-# Commit changes
-git commit -m "Sync ready sessions: $(echo ${ready_sessions[@]} | tr ' ' ',')"
+# Git operations
+echo "📦 Adding files to git..."
+git add .
 
-# Push to public repo
-echo "📤 Pushing to public repo..."
-git push public "$sync_branch:main" --force
+echo "💬 Creating commit..."
+git commit -m "Sync ready sessions: $(IFS=,; echo "${ready_sessions[*]}")
 
-# Return to main branch and cleanup
-git checkout main
-git branch -D "$sync_branch"
+🤖 Auto-synced from private repo on $(date '+%Y-%m-%d %H:%M:%S')"
+
+echo "📤 Force pushing to public repo..."
+git push origin main --force
 
 echo ""
 echo "✅ ChapterSync complete! Ready sessions synced to public repo."
