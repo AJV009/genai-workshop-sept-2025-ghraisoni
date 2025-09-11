@@ -3,20 +3,19 @@ INDEX.PY - Document Indexing Script
 
 What it does:
 - Loads all text files from the source_text folder
-- Splits them into smaller chunks for better search results
-- Converts each chunk into embeddings using Google Gemini
+- Converts each file into embeddings using Google Gemini
 - Stores the embeddings in Pinecone vector database for fast similarity search
 
 How it works:
 1. Finds all .txt files in the source_text directory
 2. Reads each file content
-3. Splits the text into chunks of 500 words each using a simple word-based splitter
-4. For each chunk:
+3. For each file:
    - Generates an embedding using Gemini
-   - Creates a unique ID based on filename and chunk number
+   - Creates a unique ID based on filename
    - Stores in Pinecone with the original text as metadata
-5. Prints progress as it processes each file
+4. Prints progress as it processes each file
 
+Since our source files are small, we process each file as a single unit without chunking.
 Run this once to index all your documents before using the chatbot.
 """
 
@@ -32,16 +31,6 @@ load_dotenv()
 pc = Pinecone(api_key=os.getenv("PINECONE_API_KEY"))
 index = pc.Index(os.getenv("PINECONE_INDEX"))
 
-def simple_text_splitter(text, chunk_size=500):
-    """Simple text splitter that splits text into chunks"""
-    chunks = []
-    words = text.split()
-    
-    for i in range(0, len(words), chunk_size):
-        chunk = " ".join(words[i:i + chunk_size])
-        chunks.append(chunk)
-    
-    return chunks
 
 def load_and_index_files():
     """Load all text files and index them in Pinecone"""
@@ -53,22 +42,19 @@ def load_and_index_files():
         with open(file_path, 'r', encoding='utf-8') as file:
             content = file.read()
         
-        chunks = simple_text_splitter(content)
+        file_id = os.path.basename(file_path).replace('.txt', '')
+        embedding = get_embedding(content)
         
-        for i, chunk in enumerate(chunks):
-            chunk_id = f"{os.path.basename(file_path)}_{i}"
-            embedding = get_embedding(chunk)
-            
-            index.upsert(vectors=[{
-                "id": chunk_id,
-                "values": embedding,
-                "metadata": {
-                    "text": chunk,
-                    "filename": os.path.basename(file_path)
-                }
-            }])
+        index.upsert(vectors=[{
+            "id": file_id,
+            "values": embedding,
+            "metadata": {
+                "text": content,
+                "filename": os.path.basename(file_path)
+            }
+        }])
         
-        print(f"Indexed {len(chunks)} chunks from {file_path}")
+        print(f"Indexed {file_path} as single document")
 
 if __name__ == "__main__":
     load_and_index_files()

@@ -9,7 +9,7 @@ What it does:
 How it works:
 1. When user asks a question:
    - Converts the question into an embedding using Gemini
-   - Searches Pinecone for the 3 most similar document chunks
+   - Searches Pinecone for the 3 most similar documents
    - Combines the retrieved text as context
 2. Builds a conversation with:
    - System message including the retrieved context
@@ -18,6 +18,7 @@ How it works:
 3. Sends everything to OpenAI for a streaming response
 4. Returns the AI's answer based on both the context and its general knowledge
 
+Since our source files are small, each document is indexed as a complete unit without chunking.
 The result is a chatbot that can answer questions about your specific documents
 while still being able to have general conversations.
 """
