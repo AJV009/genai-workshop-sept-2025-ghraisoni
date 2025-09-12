@@ -31,7 +31,7 @@ from pinecone import Pinecone
 from dotenv import load_dotenv
 from embedding import get_embedding
 
-load_dotenv()
+load_dotenv("../.env.secret")
 
 app = FastAPI(title="OpenAI-Compatible RAG API")
 

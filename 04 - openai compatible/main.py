@@ -22,7 +22,7 @@ import gradio as gr
 from openai import OpenAI
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv("../.env.secret")
 
 # Initialize client to connect to local API server (or shared via ngrok)
 api_client = OpenAI(

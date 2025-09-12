@@ -3,7 +3,7 @@ import gradio as gr
 from openai import OpenAI
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv("../.env.secret")
 
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY"),
