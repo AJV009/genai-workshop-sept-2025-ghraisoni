@@ -80,7 +80,7 @@ async def chat_completions(request: dict):
     if last_user_message:
         context = search_knowledge(last_user_message)
         # Add context to the last user message
-        enhanced_message = f"{last_user_message}\n\nContext:\n{context}"
+        enhanced_message = f"Provided Context:\n{context}\n\n User query: {last_user_message}"
         
         # Update the last user message with context
         for i in reversed(range(len(messages))):
