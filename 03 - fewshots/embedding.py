@@ -32,4 +32,4 @@ def get_embedding(text):
         model="gemini-embedding-001",
         contents=text
     )
-    return result.embeddings[0]
+    return result.embeddings[0].values
